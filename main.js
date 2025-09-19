@@ -85,6 +85,30 @@ function deleteTask(id) {
   console.log(`Deleted task ${id}`);
 }
 
+function setStatus(id, status) {
+  const tasks = loadDB();
+  const task = tasks.find(t => t.id == id);
+  if (!task) { cosole.error(`Task ${id} not found.`); process.exit(1); }
+  if (!STATUSES.has(status)) { console.error(`Invalid status: ${status}`); process.exit(1); }
+  task.status = status;
+  task.updatedAt = now();
+  saveDB(tasks);
+  console.log(`Marked task ${id} as ${status}.`);
+}
+
+function listTasks(filter) {
+  const tasks = loadDB();
+  let filtered = tasks;
+  if (filter) {
+    if (!STATUSES.has(filter)) {
+      console.error("Unkown list filter: " + filter + ". Use: todo | in-progress | done");
+      process.exit(1);
+    }
+    filtered = tasks.filter(t => t.status === filter);
+  }
+  printTasks(filtered);
+}
+
 
 const tasks = [
   {
@@ -103,5 +127,5 @@ const tasks = [
   },
 
 ]
-deleteTask(1);
 
+listTasks("in-progress");
