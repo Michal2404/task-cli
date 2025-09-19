@@ -2,6 +2,9 @@
   "name": "task-cli",
   "version": "1.0.0",
   "type": "module",
+  "bin": {
+    "task-cli": "./main.js"
+  },
   "main": "index.js",
   "scripts": {
     "start": "node main.js"

@@ -1,12 +1,18 @@
+#!/usr/bin/env node
 // Pull in Node's standard libraries for file access and path manipulation
-import { readFileSync, writeFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import os from "os";
 
 // Construct DB_PATH to point to our tasks.json
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const DB_PATH = join(__dirname, "tasks.json");
+function dataDir() {
+  const base = process.env.XDG_DATA_HOME || join(os.homedir(), ".local", "share");
+  const dir = join(base, "task-cli");
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  return dir;
+}
+const DB_PATH = join(dataDir(), "tasks.json");
 
 // Allowed values for a task's status.
 const STATUSES = new Set(["todo", "in-progress", "done"]);
@@ -78,9 +84,9 @@ function updateTask(id, desc) {
 
 function deleteTask(id) {
   const tasks = loadDB();
-  const task = tasks.find(t => t.id == id);
-  if (!task) { console.error(`Task ${id} not found.`); process.exit(1); }
-  tasks.splice(id, 1);
+  const idx = tasks.findIndex(t => t.id == id);
+  if (idx === -1) { console.error(`Task ${id} not found.`); process.exit(1); }
+  tasks.splice(idx, 1);
   saveDB(tasks);
   console.log(`Deleted task ${id}`);
 }
@@ -109,23 +115,67 @@ function listTasks(filter) {
   printTasks(filtered);
 }
 
+function parseId(str) {
+  const id = Number(str);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    console.error("ID must be a positive integer.");
+    process.exit(1);
+  }
+  return id;
+}
 
-const tasks = [
-  {
-    "id": 1,
-    "description": "first proper task",
-    "status": "todo",
-    "createdAt": "2025-09-19T12:00:00.000Z",
-    "updatedAt": "2025-09-19T12:00:00.000Z"
-  },
-  {
-    "id": 2,
-    "description": "second proper task",
-    "status": "in-progress",
-    "createdAt": "2025-09-19T12:00:00.000Z",
-    "updatedAt": "2025-09-19T12:00:00.000Z"
-  },
+const [, , cmd, ...rest] = process.argv;
+// Routing the CLI controller
+switch (cmd) {
+  case "add": {
+    const desc = rest.join(" ").trim().replace(/^"|"$/g, "");
+    addTask(desc);
+    break;
+  }
+  case "update": {
+    const id = parseId(rest[0]);
+    const desc = rest.slice(1).join(" ").trim().replace(/^"|"$/g, "");
+    updateTask(id, desc);
+    break;
+  }
+  case "delete": {
+    const id = parseId(rest[0]);
+    deleteTask(id);
+    break;
+  }
+  case "mark-todo": {
+    const id = parseId(rest[0]);
+    setStatus(id, "todo");
+    break;
+  }
+  case "mark-in-progress": {
+    const id = parseId(rest[0]);
+    setStatus(id, "in-progress");
+    break;
+  }
+  case "mark-done": {
+    const id = parseId(rest[0]);
+    setStatus(id, "done");
+    break;
+  }
+  case "list": {
+    const filter = (rest[0] || "").toLowerCase();
+    listTasks(filter || undefined);
+    break;
+  }
+  case undefined:
+  case "help":
+  default: {
+    console.log(`Task Tracker CLI
+Usage:
+  node main.js add "description"
+  node main.js update <id> "new description"
+  node main.js delete <id>
+  node main.js mark-in-progress <id>
+  node main.js mark-done <id>
+  node main.js list [todo|in-progress|done]
+`);
+  }
+}
 
-]
 
-listTasks("in-progress");
