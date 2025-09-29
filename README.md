@@ -3,6 +3,8 @@
 A simple command-line task tracker written in Node.js.  
 Manage your tasks directly from the terminal — add, list, update, mark as done, and delete them.
 
+The project idea taken from https://roadmap.sh/projects/task-tracker
+
 ---
 
 ## Features
